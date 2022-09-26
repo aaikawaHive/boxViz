@@ -1,37 +1,21 @@
 {% extends "layout.html" %}
 
-{% block title %}{{ data.name}} {% endblock %}
+{% block title %}{{ data.name }} {% endblock %}
 
 {% block content %}
 <div class="container" style="width:100%;">
 
-  <nav class="navbar">
-    <div class="navbar-header">
-      
-    <span class="navbar-brand">{{ config.APPNAME }}</span>
-    </div>
-    <form class="navbar-form navbar-left" role="search" name="goto" action="/goto" method="POST">
-      <div class="form-group">
-        <input type="text" name="index" class="form-control" placeholder="Go to index">
-      </div>
-      <button type="Go" class="btn btn-default">Go</button>
-    </form>
-    <ul class="nav navbar-nav">
-      <li><a href="/">home</a></li>
-      <li><a href="/{{pager.prev}}">&larr;</a> </li>
-      <li><a href="/{{pager.next}}">&rarr;</a> </li>
-      {% include 'links.html' %}
-    </ul>
-  </nav>
+  {% include 'navbar.html' %}
 
   <div class="row">
     <div class="col-md-6">
-      <img src="{{ url_for('static', filename='images/'+data.name+'.jpg') }}" class="img-responsive center-block" alt="">
+      <img src="{{ url_for('static', filename='temp.png') }}" class="img-responsive center-block" alt="">
     </div>
     <div class="col-md-6">
       <h2>{{data.name}}</h2>
       {% include 'table.html' %}
     </div>
+    {% include 'checkbox.html' %}
   </div>
 
 </div>

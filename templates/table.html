@@ -1,6 +1,6 @@
 <table class="table table-striped">
   <tbody>
-    {% for key in ["name", "ra", "dec", "notes"] %}
+    {% for key in ["name"] %}
     <tr>
       <td><b>{{ key|e|capitalize }}</b></td>
       <td>{{ data[key]|e }}</td>

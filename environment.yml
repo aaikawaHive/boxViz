@@ -2,7 +2,9 @@ name: viewer
 
 dependencies:
 - python=3
+- pip
 - pip:
   - flask
   - requests
+  - opencv-python
 

@@ -1,6 +1,6 @@
-# ImageViewer
+# BoxViz
 
-Do you have a bunch of images with meta information that you would like to go through (or share)?
+Tool for viewing bounding boxes. WIP
 
 This is a web-based image viewer for that.
 
@@ -31,18 +31,7 @@ source activate viewer
 python app.py
 ```
 
-2. Use [docker](https://www.docker.com/):
-```sh
-git clone https://github.com/smoh/imageviewer
-cd imageviewer
-docker-compose up --build
-```
-
-Once the app is running, point your browser to `localhost:5000`.
-This will show images inside `example/images/` directory with the related information in `fakecatalog.csv`
-like this:
-
-![](screenshot.png)
+There are other dependencies you might want to install like `torch` depending on the format of your groundtruths/predictions. Install as needed.
 
 Configure static file paths in `app.py` and modify templates in `templates/`
 according to your needs. [Flask](http://flask.pocoo.org/) uses the [jinja](http://jinja.pocoo.org/) template engine.
