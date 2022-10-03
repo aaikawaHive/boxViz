@@ -23,6 +23,11 @@
         <label for='myRange'>Value: <span id="demo", default="0.1"></span></p>
       </div>
     <div>
+    <div class="form-group">
+        <label for="labelFilter">Filter by label</label>
+        <input type="text" class="form-control" id="labelFilter" name="labelFilter" placeholder="Space Separated labels ">
+        <p>Active filters : {{ active_filters }}</p>
+    </div>
         <button type="submit">Submit</button>
     </div>
 </form>

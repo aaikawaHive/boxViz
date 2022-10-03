@@ -1,0 +1,14 @@
+<table class="table table-striped">
+  <tbody>
+    {% for bbox in preds %}
+    <tr>
+      <td>
+        {% for item in bbox %}
+        <b>{{ item }}</b>
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+

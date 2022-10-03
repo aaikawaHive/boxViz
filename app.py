@@ -6,58 +6,47 @@ import os
 import requests
 import tempfile
 from pager import Pager
-from utils import get_groundtruths, plot_one_box, format_from_hsl_swin, format_from_torch
+from plot import plot_one_box, plot_boxes
+from data import format_from_torch, get_groundtruths, format_from_video_hsl_torch, format_from_video_hsl_triton
+
+################################################################################################################################################
+# PROJECt DEFS #################################################################################################################################
+################################################################################################################################################
 
 APPNAME = "BoxViz"
-IMAGES = '/persist/aaikawa/data/data/'
-GROUNDTRUTHS = [
-    '/persist/aaikawa/data/split_test_0_detectron2.json', # should be detectron2 format
-    '/persist/aaikawa/data/split_test_1_detectron2.json',
-    '/persist/aaikawa/data/split_test_2_detectron2.json',
-    '/persist/aaikawa/data/split_test_3_detectron2.json',
-]
-# PREDICTIONS = '/persist/aaikawa/hsl_scripts/TEST_dino/' # should be hsl format
-PREDICTIONS = '/persist/aaikawa/preds/'
+IMAGES = '/persist/aaikawa/frames/'
+GROUNDTRUTHS = None
+# GROUNDTRUTHS = [
+#     '/persist/aaikawa/data/split_test_0_detectron2.json', # should be detectron2 format
+#     '/persist/aaikawa/data/split_test_1_detectron2.json',
+#     '/persist/aaikawa/data/split_test_2_detectron2.json',
+#     '/persist/aaikawa/data/split_test_3_detectron2.json',
+# ] # list set of images you want to see
+# PREDICTIONS = {
+#     'swin' : ('/persist/aaikawa/preds/', format_from_torch)
+# } # dict from model name (str) to a set of predictions, where there is one prediction per 
+PREDICTIONS = {
+    'torch' : ('/persist/aaikawa/hsl_scripts/tmp', format_from_video_hsl_torch),
+    'triton' : ('/persist/aaikawa/hsl_scripts/TEST_triton', format_from_video_hsl_triton)
+}
+LABELS = ["ball", "car", "cup_bottle_can", "golf_club", "hat", "headphones", "helmets", "jersey", "shoe", "watches", "static_sign", "home_plate_sign", "stadium_front", "aerial_stadium", "dugout", "player_fan_tunnel", "media_backdrop", "playing_area", "jumbotron_screen", "fan_area", "lower_level_banner", "bball_stanchion", "on_court_seating", "upper_level_banner", "basketball_pole_pad", "field_goal_post", "football_team_bench"]
 
-def plot_boxes(filepath, showGT=True, showPred=True, thresh=0.1):
-    top, bottom, left, right = 30, 0, 30, 0
-    img = cv2.imread(filepath, cv2.IMREAD_COLOR)
-    if img is None: return None
-    basename = os.path.basename(filepath)
-    
-    if showGT:
-        if not basename in groundtruths:
-            print(f'{basename} does not have groundtruth')
-        else:
-            annotations = groundtruths[basename]
-            for gt in annotations:
-                print(gt)
-                label = gt['saved_label']
-                x = gt['bbox']
-                img = plot_one_box(x, img, color=(0, 0, 0), label=f'GT : {label}', line_thickness=2)
-    if showPred and PREDICTIONS is not None:
-        # annotations = format_from_hsl_swin(PREDICTIONS + basename + '.json')
-        annotations = format_from_torch(PREDICTIONS + basename + '.pt')
-        print("!" * 10 ** 2)
-        for label, score, *x in annotations:
-            if score > int(thresh) / 100.0:                
-                print(label, score, x)
-                print()
-                label = f'{label} : {score:.02f}'
-                img = plot_one_box(x, img, label=label, line_thickness=1)
-        print("!" * 10 ** 2)
-    return img
+################################################################################################################################################
 
-groundtruths = {}
-for gt in GROUNDTRUTHS:
-    groundtruths.update(get_groundtruths(gt))
+if GROUNDTRUTHS:
+    groundtruths = {}
+    for gt in GROUNDTRUTHS:
+        groundtruths.update(get_groundtruths(gt))
+else:
+    groundtruths = None
 
 # TODO : handle filenames with special chars (i.e. %)
-im_list = [im for im in os.listdir(IMAGES) if im in groundtruths and not '%' in im]
+# im_list = [im for im in os.listdir(IMAGES) if im in groundtruths and not '%' in im] # ignores files with '%' char
+im_list = [im for im in sorted(os.listdir(IMAGES))]
 table = [{'name' : img} for img in im_list]
 img2idx = {img : i for i, img in enumerate(im_list)}
 idx2img = {i : img for i, img in enumerate(im_list)}
-
+active_filters = ""
 
 pager = Pager(len(table))
 
@@ -74,18 +63,43 @@ def index():
 def image_view(filename):
     
     if request.method == 'POST':
-        print(request.form)
         showGT, showPred = 'showGT' in request.form, 'showPred' in request.form
         thresh = int(request.form['myRange'])
+        active_filters = request.form['labelFilter']
     else:
-        showGT, showPred, thresh = True, True, 10
-    image = plot_boxes(IMAGES + filename, showGT=showGT, showPred=showPred, thresh=thresh)
+        showGT, showPred, thresh, active_filters = True, True, 10, ''
+    gts = groundtruths if showGT else None
+    preds = PREDICTIONS if showPred else None
+
+    kwargs = {
+        'thresh' : thresh,
+        'labels' : LABELS,
+        'filters' : active_filters
+    }
+
+    # plot preds and gts together
+    filepath = os.path.join(IMAGES, filename)
+    image, _ = plot_boxes(filepath, groundtruths=gts, predictions=preds, **kwargs)
     if image is None:
-        return render_template("404.html", file_path=IMAGES + filename, pager=pager), 404
-    print(filename)
+        return render_template("404.html", file_path=filepath, pager=pager), 404
     ind = img2idx[filename]
     pager.current = ind
     cv2.imwrite('static/temp.jpg', image)
+
+    # make seperate panels for preds and gts
+    all_boxes = {}
+    if groundtruths:
+        filepath = os.path.join(IMAGES, filename)
+        image, annotations = plot_boxes(filepath, groundtruths=gts, **kwargs) # just gts
+        cv2.imwrite('static/temp_gt.jpg', image)
+        all_boxes['gt'] = annotations
+
+    # one image per model
+    for k, v in PREDICTIONS.items():
+        filepath = os.path.join(IMAGES, filename)
+        image, annotations = plot_boxes(filepath, groundtruths=None, predictions={k : v}, **kwargs) 
+        all_boxes[f'{k}'] = annotations
+        cv2.imwrite(f'static/temp_{k}.jpg', image)
 
     response = render_template(
         'imageview.html',
@@ -93,6 +107,8 @@ def image_view(filename):
         pager=pager,
         data=table[ind],
         request=request,
+        all_boxes=all_boxes,
+        active_filters=active_filters,
         )
     return response
 
