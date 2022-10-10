@@ -24,7 +24,6 @@ You can either run in a new conda environment or use docker.
 1. Create a new conda environment to install required packages locally:
 
 ```sh
-git clone https://github.com/smoh/imageviewer
 cd imageviewer
 conda env create    # will create 'viewer' environment specified in environment.yml
 source activate viewer
