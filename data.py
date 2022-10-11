@@ -4,6 +4,7 @@ Utilities for formatting and reading prediction/groundtruth files.  return value
 import json
 import torch
 import os.path as osp
+import os
 from functools import cache
 
 @cache
@@ -38,6 +39,26 @@ def format_from_hsl_swin(filepath, labels=None):
         score = item['detection_classes']['list'][0]['score']
 
         return_list.append([text, score, x0, y0, x1, y1])
+        
+    return return_list
+
+def format_from_hsl_triton(filepath, labels=None):
+    filepath += '.json'
+    with open(filepath, 'r', encoding='utf-8') as f:
+        response = json.load(f)['response']['output'][0]
+    return_list = []
+
+    for item in response:
+        x0 = item['bbox']['left']
+        y0 = item['bbox']['top']
+        x1 = item['bbox']['right']
+        y1 = item['bbox']['bottom']
+
+        text = item['class']
+        score = item['score'][0][0]
+
+        return_list.append([text, score, x0, y0, x1, y1])
+        
     return return_list
 
 def format_from_video_hsl_torch(filepath, labels=None):
@@ -108,3 +129,11 @@ def format_from_torch(filepath, labels=None):
 def get_groundtruths(filepath): # from detectron format
     full_list = json.load(open(filepath, 'r'))
     return {osp.basename(item['file_name']) : item['annotations'] for item in full_list}
+
+def get_preds(detections, formatter):
+    ret = {}
+    for anno_file in os.listdir(detections):
+        img_name = osp.splitext(anno_file)[0]
+        path = osp.join(detections, img_name)
+        ret[img_name] = formatter(path)
+    return ret

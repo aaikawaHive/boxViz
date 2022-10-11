@@ -7,29 +7,26 @@ import requests
 import tempfile
 from pager import Pager
 from plot import plot_one_box, plot_boxes
-from data import format_from_torch, get_groundtruths, format_from_video_hsl_torch, format_from_video_hsl_triton
+from data import format_from_torch, get_groundtruths, format_from_hsl_triton, get_preds
+from box_utils import missing
 
 ################################################################################################################################################
-# PROJECt DEFS #################################################################################################################################
+# PROJECT DEFS #################################################################################################################################
 ################################################################################################################################################
 
 APPNAME = "BoxViz"
-IMAGES = '/persist/aaikawa/frames/'
+IMAGES = '/persist/aaikawa/face/test_images/'
 GROUNDTRUTHS = None
-# GROUNDTRUTHS = [
-#     '/persist/aaikawa/data/split_test_0_detectron2.json', # should be detectron2 format
-#     '/persist/aaikawa/data/split_test_1_detectron2.json',
-#     '/persist/aaikawa/data/split_test_2_detectron2.json',
-#     '/persist/aaikawa/data/split_test_3_detectron2.json',
-# ] # list set of images you want to see
+GROUNDTRUTHS = [
+    '/persist/aaikawa/face/face_test_detectron2.json', # should be detectron2 format
+] # list set of images you want to see
 # PREDICTIONS = {
 #     'swin' : ('/persist/aaikawa/preds/', format_from_torch)
 # } # dict from model name (str) to a set of predictions, where there is one prediction per 
 PREDICTIONS = {
-    'torch' : ('/persist/aaikawa/hsl_scripts/tmp', format_from_video_hsl_torch),
-    'triton' : ('/persist/aaikawa/hsl_scripts/TEST_triton', format_from_video_hsl_triton)
+    'triton' : ('/persist/aaikawa/hsl_scripts/TEST_face', format_from_hsl_triton)
 }
-LABELS = ["ball", "car", "cup_bottle_can", "golf_club", "hat", "headphones", "helmets", "jersey", "shoe", "watches", "static_sign", "home_plate_sign", "stadium_front", "aerial_stadium", "dugout", "player_fan_tunnel", "media_backdrop", "playing_area", "jumbotron_screen", "fan_area", "lower_level_banner", "bball_stanchion", "on_court_seating", "upper_level_banner", "basketball_pole_pad", "field_goal_post", "football_team_bench"]
+LABELS = ['face']
 
 ################################################################################################################################################
 
@@ -40,9 +37,16 @@ if GROUNDTRUTHS:
 else:
     groundtruths = None
 
+if PREDICTIONS:
+    all_preds = {}
+    for filepath, formatter in PREDICTIONS.values():
+        all_preds.update(get_preds(filepath, formatter))
+else:
+    all_preds = None
+
 # TODO : handle filenames with special chars (i.e. %)
 # im_list = [im for im in os.listdir(IMAGES) if im in groundtruths and not '%' in im] # ignores files with '%' char
-im_list = [im for im in sorted(os.listdir(IMAGES))]
+im_list = [im for im in sorted(os.listdir(IMAGES)) if missing(groundtruths, all_preds, im)]
 table = [{'name' : img} for img in im_list]
 img2idx = {img : i for i, img in enumerate(im_list)}
 idx2img = {i : img for i, img in enumerate(im_list)}
@@ -55,19 +59,13 @@ app.config.update(
     APPNAME=APPNAME,
     )
 
-@app.route('/')
-def index():
-    return redirect(f'/{im_list[0]}')
-
-@app.route('/<filename>/', methods=['POST', 'GET'])
-def image_view(filename):
-    
+def imview(filename):
     if request.method == 'POST':
         showGT, showPred = 'showGT' in request.form, 'showPred' in request.form
         thresh = int(request.form['myRange'])
         active_filters = request.form['labelFilter']
     else:
-        showGT, showPred, thresh, active_filters = True, True, 10, ''
+        showGT, showPred, thresh, active_filters = True, True, 0.1, ''
     gts = groundtruths if showGT else None
     preds = PREDICTIONS if showPred else None
 
@@ -112,6 +110,22 @@ def image_view(filename):
         )
     return response
 
+@app.route('/')
+def index():
+    return redirect(f'/{im_list[0]}')
+
+@app.route('/<project>/<a>/<b>/<c>/<d>/', methods=['POST', 'GET'])
+def image_percent(project='', a='', b='', c='', d=''):
+    """
+    URL handler for files containing %2F
+    """
+    filename = r'%2F'.join([project, a, b, c, d]) 
+    return imview(filename)
+
+@app.route('/<filename>/', methods=['POST', 'GET'])
+def image_view(filename=''):
+    return imview(filename)
+
 @app.route('/<int:ind>/')
 def image_view_idx(ind=None):
     filename = idx2img[ind]
@@ -122,7 +136,6 @@ def goto():
     # filename = idx2img[int(request.form['index'])]
     # return redirect('/' + filename)
     return redirect('/' + request.form['index'])
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8888)
