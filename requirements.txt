@@ -7,3 +7,6 @@ jinja2
 werkzeug
 requests
 uwsgi
+torch
+scipy
+tqdm
