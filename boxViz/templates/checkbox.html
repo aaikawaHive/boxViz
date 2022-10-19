@@ -1,0 +1,44 @@
+<form method="post">
+    {% if request.method == 'POST' %}
+    <div>
+        <input type="checkbox" id="showGT" name="showGT" value="{{ 'showGT' in request.form }}" checked="{{ 'showGT' in request.form }}">
+        <label for="showGT">Show gt boxes</label>
+    </div>
+    <div>
+        <input type="checkbox" id="showPred" name="showPred" value="{{ 'showPred' in request.form }}" checked="{{ 'showGT' in request.form }}">
+        <label for="showPred">Show prediction boxes</label>
+    </div>
+    {% else %}
+    <div>
+        <input type="checkbox" id="showGT" name="showGT" value="True" checked="True">
+        <label for="showGT">Show gt boxes</label>
+    </div>
+    <div>
+        <input type="checkbox" id="showPred" name="showPred" value="True" checked="True">
+        <label for="showPred">Show prediction boxes</label>
+    </div>
+    {% endif %}
+    <div class="slidecontainer">
+        <input type="range" min="1" max="100" class="slider" name="myRange" id="myRange" value="{{ request.form['myRange'] }}">
+        <label for='myRange'>Value: <span id="demo", default="0.1"></span></p>
+      </div>
+    <div>
+    <div class="form-group">
+        <label for="labelFilter">Filter by label</label>
+        <input type="text" class="form-control" id="labelFilter" name="labelFilter" placeholder="Space Separated labels ">
+        <p>Active filters : {{ active_filters }}</p>
+    </div>
+        <button type="submit">Submit</button>
+    </div>
+</form>
+
+<script>
+    var slider = document.getElementById("myRange");
+    var output = document.getElementById("demo");
+    output.innerHTML = slider.value;
+    
+    slider.oninput = function() {
+      output.innerHTML = this.value / 100;
+    }
+</script>
+
