@@ -1,4 +1,4 @@
 *.pyc
 *~
-static/temp*.jpg
+boxViz/static/temp*.jpg
 __pycache__

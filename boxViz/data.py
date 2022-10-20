@@ -140,7 +140,7 @@ def get_preds(detections, formatter):
         try:
             ret[img_name] = formatter(path)
         except json.decoder.JSONDecodeError:
-            print(f'missing prediction for {path}')
+            # print(f'missing prediction for {path}')
             count += 1
             continue
     print(f'total missing = {count}')

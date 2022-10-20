@@ -1,3 +1,18 @@
+<script>
+  document.body.onkeydown = function(e) {
+    switch (e.keyCode) {
+      case 37: // left
+        window.location.replace("/{{pager.prev}}")
+        e.preventDefault(); 
+        break;
+      case 39: // right
+        window.location.replace("/{{pager.next}}")
+        e.preventDefault(); 
+        break;
+    }
+  };
+</script>
+
 <nav class="navbar">
     <div class="navbar-header">
       

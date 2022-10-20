@@ -8,6 +8,7 @@ def scale_shift_bbox(bbox, s, delta):
     """
     bbox = bbox[:]
     bbox = list(map(lambda x : x * s, bbox))
+    
     bbox[0] += delta[0]
     bbox[2] += delta[0]
     bbox[1] += delta[1]
@@ -31,9 +32,19 @@ def resize(img, maxsize=1000):
     return img, scale_factor
 
 def plot_boxes(filepath, groundtruths=None, predictions=None, thresh=0.1, labels=None, filters=""):
+    """
+    Given a filepath to an image and a dictionary of all the groundtruths/predictions, draw the predictions
+    onto an image and return the image (np.array)
+
+    Returns
+        - img_resized : resized and annotated image as an np.array
+        - ret : a list of annotations, which gets passed into the imageviewer to list the bbox annotations
+        - original_dims : the (h, w) of the original image
+    """
     # pad the top so you can read labels that take the whole frame
     label_set = set(filters.split())
     img = cv2.imread(filepath, cv2.IMREAD_COLOR)
+    original_dims = img.shape[:2]
     img_resized, scale_factor = resize(img)
     top, bottom, left, right = 10, 0, 0, 0
     delta = [left, top]
@@ -41,12 +52,11 @@ def plot_boxes(filepath, groundtruths=None, predictions=None, thresh=0.1, labels
     basename = osp.basename(filepath)
     ret = []
     if groundtruths:
-        annotations = groundtruths[basename]
-        for i, gt in enumerate(annotations):
+        for i, gt in enumerate(groundtruths):
             label = gt['saved_label']
             if len(label_set) == 0 or label in label_set:
                 x_shifted = scale_shift_bbox(gt['bbox'], scale_factor, delta)
-                img_resized = plot_one_box(x_shifted, img_resized, color=(0, 0, 0), label=f'GT : {label}', line_thickness=2)
+                img_resized = plot_one_box(x_shifted, img_resized, color=(0, 0, 0), label=f'GT : {label}', line_thickness=3)
                 ret.append([label] + [f'{c:.01f}' for c in gt['bbox']])
     if predictions:
         for model_name, (pred_folder, formatter) in predictions.items():
@@ -56,15 +66,25 @@ def plot_boxes(filepath, groundtruths=None, predictions=None, thresh=0.1, labels
                     if score > int(thresh) / 100.0 and (len(label_set) == 0 or label in label_set):                
                         text = f'{label[:8]} : {score:.01f}'
                         x_shifted = scale_shift_bbox(x, scale_factor, delta)
-                        img_resized = plot_one_box(x_shifted, img_resized, label=text, line_thickness=1)
+                        img_resized = plot_one_box(x_shifted, img_resized, label=text, line_thickness=2)
                         ret.append([label, f'{score:.01f}'] + [f'{c:.01f}' for c in x])
             except FileNotFoundError as e:
                 print(e)
                 continue
     ret = sorted(ret, key=lambda x: (x[0], -float(x[1])))
-    return img_resized, ret
+    return img_resized, ret, original_dims
 
 def plot_one_box(x, img, color=None, label=None, line_thickness=3):
+    """
+    Draws a single box onto `img`
+
+    Parameters
+        - x : bbox absolute coords [x0, y0, x1, y1]
+        - img : image array to be annotated onto
+    
+    Returns
+        - img : annotated image as np.array
+    """
     # Plots one bounding box on image img
     tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line/font thickness
     color = color or [random.randint(0, 255) for _ in range(3)]

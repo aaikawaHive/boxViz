@@ -8,10 +8,10 @@
   {% include 'navbar.html' %}
 
   <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-8">
       <img src="/static/temp.jpg" class="img-responsive center-block" alt="">
     </div>
-    <div class="col-md-6">
+    <div class="col-md-2">
       <h2>{{data.name}}</h2>
       {% include 'table.html' %}
       {% include 'checkbox.html' %}
@@ -19,15 +19,13 @@
   </div>
   <br>
 
-  <!-- show groundtruth and preds--> 
-
   {% for model, preds in all_boxes.items() %}
 
     <div class="row">
-      <div class="col-md-6">
+      <div class="col-md-8">
         <img src="/static/temp_{{ model }}.jpg" class="img-responsive center-block" alt="">
       </div>
-      <div class="col-md-6">
+      <div class="col-md-3">
         <h2>{{ model }}</h2>
         <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample_{{ model }}" role="button" aria-expanded="false" aria-controls="collapseExample_{{ model }}"></a>
           Show preds
@@ -41,7 +39,6 @@
 
   {% endfor %}
   
-
 </div>
 
 {% endblock %}
