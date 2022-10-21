@@ -1,18 +1,21 @@
-import base64
-import csv
 import cv2
-from flask import render_template, request, redirect, url_for, make_response
+from flask import render_template, request, redirect
 import os
 import requests
 from boxViz.pager import Pager
 from boxViz.plot import plot_one_box, plot_boxes
-from boxViz.data import format_from_torch, get_groundtruths, format_from_hsl_triton, get_preds
 from boxViz.box_utils import missing
-from boxViz.app import *
+from boxViz.app import app, groundtruths, im_list, img2idx, idx2img, pager
+from boxViz import PREDICTIONS, LABELS, IMAGES
 
 directory = os.path.dirname(__file__)
 
 def imview(filename):
+    """
+    Renders template for imageviewer. Called by `image_percent`, `image_view`, `image_view_idx`
+    which handle url routing.
+    """
+    # handle user input
     if request.method == 'POST':
         try:
             thresh = float(request.form['confidenceFilter'])
@@ -95,6 +98,9 @@ def image_view_idx(ind=None):
 
 @app.route('/goto', methods=['POST', 'GET'])    
 def goto():
+    """
+    used by Pager
+    """
     # filename = idx2img[int(request.form['index'])]
     # return redirect('/' + filename)
     return redirect('/' + request.form['index'])

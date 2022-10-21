@@ -2,28 +2,9 @@ from flask import Flask
 import os
 from collections import defaultdict
 from functools import reduce
-from boxViz.data import get_groundtruths, get_preds, format_from_hsl_triton, format_from_hsl_swin
+from boxViz.data import get_groundtruths, get_preds
 from boxViz.pager import Pager
-################################################################################################################################################
-# PROJECT DEFS #################################################################################################################################
-################################################################################################################################################
-
-APPNAME = "BoxViz"
-IMAGES = '/persist/aaikawa/main_logo/main_logo_images/'
-GROUNDTRUTHS = [
-    '/persist/aaikawa/main_logo/main_logo_test_detectron2.json', # should be detectron2 format
-] # list set of images you want to see
-# PREDICTIONS = {
-#     'swin' : ('/persist/aaikawa/preds/', format_from_torch)
-# } # dict from model name (str) to a set of predictions, where there is one prediction per 
-PREDICTIONS = {
-    'triton' : ('/persist/aaikawa/hsl_scripts/TEST_triton', format_from_hsl_triton),
-    'torch' : ('/persist/aaikawa/hsl_scripts/TEST_torch', format_from_hsl_swin)
-}
-LABELS = '/persist/aaikawa/main_logo/classes.labels'
-LABELS = open(LABELS, 'r').read().split()
-label_filters = ['aral']
-################################################################################################################################################
+from boxViz import APPNAME, IMAGES, GROUNDTRUTHS, PREDICTIONS, LABELS, label_filters
 
 def init_groundtruth(gts):
     """

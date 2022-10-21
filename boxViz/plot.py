@@ -81,6 +81,9 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=3):
     Parameters
         - x : bbox absolute coords [x0, y0, x1, y1]
         - img : image array to be annotated onto
+        - color : color of drawn box represented as (r, g, b) tuple
+        - label : label for the drawn box
+        - line_thickness : line width of box and text, must be int
     
     Returns
         - img : annotated image as np.array
