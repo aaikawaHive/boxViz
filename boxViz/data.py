@@ -5,10 +5,10 @@ import json
 import torch
 import os.path as osp
 import os
-from functools import cache
+from functools import lru_cache
 from tqdm import tqdm
 
-@cache
+@lru_cache(maxsize=None)
 def load_cached(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:
         return json.load(f)
@@ -45,8 +45,11 @@ def format_from_hsl_swin(filepath, labels=None):
 
 def format_from_hsl_triton(filepath, labels=None):
     filepath += '.json'
-    with open(filepath, 'r', encoding='utf-8') as f:
-        response = json.load(f)['response']['output'][0]
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            response = json.load(f)['response']['output'][0]
+    except json.decoder.JSONDecodeError:
+        return [['no detections', 0.0, 0, 0, 0, 0]]
     return_list = []
 
     for item in response:
@@ -107,6 +110,7 @@ def format_from_video_hsl_triton(filepath, labels=None):
         score = item['score'][0]
 
         return_list.append([text, score, x0, y0, x1, y1])
+    print(return_list)
     return return_list
 
 def format_from_torch(filepath, labels=None):
@@ -132,16 +136,10 @@ def get_groundtruths(filepath): # from detectron format
     return {osp.basename(item['file_name']) : item['annotations'] for item in full_list}
 
 def get_preds(detections, formatter):
-    ret = {}
-    count = 0
-    for anno_file in tqdm(os.listdir(detections)):
-        img_name = osp.splitext(anno_file)[0]
-        path = osp.join(detections, img_name)
-        try:
-            ret[img_name] = formatter(path)
-        except json.decoder.JSONDecodeError:
-            # print(f'missing prediction for {path}')
-            count += 1
-            continue
-    print(f'total missing = {count}')
-    return ret
+    img_name = osp.splitext(anno_file)[0]
+    path = osp.join(detections, img_name)
+    try:
+        return formatter(path)
+    except json.decoder.JSONDecodeError:
+        print(f'missing prediction for {path}')
+        return ['MISSING'] * 6

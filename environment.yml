@@ -6,5 +6,11 @@ dependencies:
 - pip:
   - flask
   - requests
+  - gunicorn
+  - jinja2
+  - werkzeug  
   - opencv-python
+  - torch
+  - scipy
+  - tqdm
 

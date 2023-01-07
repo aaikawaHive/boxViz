@@ -10,3 +10,4 @@ uwsgi
 torch
 scipy
 tqdm
+opencv-python

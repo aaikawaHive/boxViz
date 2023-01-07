@@ -1,19 +1,7 @@
 from __future__ import division
 import scipy.optimize
 import numpy as np
-
-def missing(groundtruth, detection, filename, iou_thresh=0.5):
-  """
-  Returns True if there are detections that are unmatched
-
-  TODO : generalize inputs for more than one class
-  """
-  gt_annos = groundtruth[filename]
-  bbox_gt = np.array([anno['bbox'] for anno in gt_annos])
-  pred_annos = detection[filename]
-  bbox_pred = np.array([box for _, _, *box in pred_annos])
-  idx_true, idx_pred, ious, labels = match_bboxes(bbox_gt, bbox_pred, IOU_THRESH=iou_thresh)
-  return sum(labels) < len(bbox_gt)
+from collections import defaultdict
 
 def bbox_iou(boxA, boxB):
   # https://www.pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/
@@ -38,6 +26,37 @@ def bbox_iou(boxA, boxB):
   iou = interArea / float(boxAArea + boxBArea - interArea)
   return iou
 
+def match_bboxes_all_classes(bbox_pred, bbox_gt, thresh=0.1, label_set=set(), **kwargs):
+  # collect class labels
+  bbox_gt_by_label = defaultdict(list)
+  bbox_pred_by_label = defaultdict(list)
+  score_by_label = defaultdict(list)
+  for gt in bbox_gt:
+    label = gt['saved_label']
+    bbox_gt_by_label[label].append(gt['bbox'])
+  
+  for label, score, *x in bbox_pred:
+    if score > thresh and (label in label_set or len(label_set) == 0):
+      bbox_pred_by_label[label].append(x)
+      score_by_label[label].append(score)
+  
+  matches = {}
+  for label in bbox_pred_by_label:
+    _, idx_pred_actual, _, _ = match_bboxes(bbox_gt_by_label[label], bbox_pred_by_label[label], **kwargs)
+    matches[label] = [True if i in idx_pred_actual else False for i, _ in enumerate(label)]
+
+  # flatten annotations and match vector
+  annotations = []
+  match_flat = []
+  for label in matches:
+    scores = score_by_label[label]
+    x = bbox_pred_by_label[label]
+    match = matches[label]
+    for score, bbox, m in zip(scores, x, match):
+      annotations.append([label, score, *bbox])
+      match_flat.append(m)
+  return annotations, match_flat
+
 def match_bboxes(bbox_gt, bbox_pred, IOU_THRESH=0.5):
     '''
     Given sets of true and predicted bounding-boxes,
@@ -54,6 +73,8 @@ def match_bboxes(bbox_gt, bbox_pred, IOU_THRESH=0.5):
         ious : corresponding IOU value of each match
         labels: vector of 0/1 values for the list of detections
     '''
+    bbox_gt, bbox_pred = np.array(bbox_gt), np.array(bbox_pred)
+    print('bbox_pred ', bbox_pred)
     n_true = bbox_gt.shape[0]
     n_pred = bbox_pred.shape[0]
     MAX_DIST = 1.0

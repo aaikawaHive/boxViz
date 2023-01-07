@@ -29,5 +29,6 @@
       <li><a href="/{{pager.prev}}">&larr;</a> </li>
       <li><a href="/{{pager.next}}">&rarr;</a> </li>
       {% include 'links.html' %}
+      <li>{{ pager.current + 1 }} of {{ pager.count }}</li>
     </ul>
 </nav>

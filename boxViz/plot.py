@@ -1,6 +1,9 @@
 import cv2
 import os.path as osp
 import random
+from boxViz.box_utils import match_bboxes_all_classes
+
+RED, GREEN = (0, 0, 229), (0, 128, 0)
 
 def scale_shift_bbox(bbox, s, delta):
     """
@@ -31,7 +34,7 @@ def resize(img, maxsize=1000):
     img = cv2.resize(img, new_dims)
     return img, scale_factor
 
-def plot_boxes(filepath, groundtruths=None, predictions=None, thresh=0.1, labels=None, filters=""):
+def plot_boxes(filepath, groundtruths=None, predictions=None, thresh=0.1, labels=None, filters="", plot_gt=False):
     """
     Given a filepath to an image and a dictionary of all the groundtruths/predictions, draw the predictions
     onto an image and return the image (np.array)
@@ -51,27 +54,24 @@ def plot_boxes(filepath, groundtruths=None, predictions=None, thresh=0.1, labels
     img_resized = cv2.copyMakeBorder(img_resized, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(0, 0, 0))
     basename = osp.basename(filepath)
     ret = []
-    if groundtruths:
+    if groundtruths and plot_gt:
         for i, gt in enumerate(groundtruths):
             label = gt['saved_label']
             if len(label_set) == 0 or label in label_set:
                 x_shifted = scale_shift_bbox(gt['bbox'], scale_factor, delta)
-                img_resized = plot_one_box(x_shifted, img_resized, color=(0, 0, 0), label=f'GT : {label}', line_thickness=3)
+                img_resized = plot_one_box(x_shifted, img_resized, color=(0, 0, 0), label=f'GT : {label[:8]}', line_thickness=2)
                 ret.append([label] + [f'{c:.01f}' for c in gt['bbox']])
     if predictions:
         for model_name, (pred_folder, formatter) in predictions.items():
-            try:
-                annotations = formatter(osp.join(pred_folder, basename), labels=labels)
-                for label, score, *x in annotations:
-                    if score > int(thresh) / 100.0 and (len(label_set) == 0 or label in label_set):                
-                        text = f'{label[:8]} : {score:.01f}'
-                        x_shifted = scale_shift_bbox(x, scale_factor, delta)
-                        img_resized = plot_one_box(x_shifted, img_resized, label=text, line_thickness=2)
-                        ret.append([label, f'{score:.01f}'] + [f'{c:.01f}' for c in x])
-            except FileNotFoundError as e:
-                print(e)
-                continue
-    ret = sorted(ret, key=lambda x: (x[0], -float(x[1])))
+            annotations = formatter(osp.join(pred_folder, basename))
+            annotations, matched = match_bboxes_all_classes(annotations, groundtruths, thresh=thresh, label_set=label_set, IOU_THRESH=0.5)
+            for (label, score, *x), m in zip(annotations, matched):
+                color = GREEN if m else RED
+                text = f'{label[:8]} : {score:.01f}'
+                x_shifted = scale_shift_bbox(x, scale_factor, delta)
+                img_resized = plot_one_box(x_shifted, img_resized, color=color, label=text, line_thickness=2)
+                ret.append([label, f'{score:.02f}'] + [f'{c:.01f}' for c in x] + ['matched' if m == 1 else 'unmatched'])
+    ret = sorted(ret, key=lambda x: (label, -float(x[1])))
     return img_resized, ret, original_dims
 
 def plot_one_box(x, img, color=None, label=None, line_thickness=3):

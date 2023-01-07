@@ -4,11 +4,13 @@ import os
 import requests
 from boxViz.pager import Pager
 from boxViz.plot import plot_one_box, plot_boxes
-from boxViz.box_utils import missing
 from boxViz.app import app, groundtruths, im_list, img2idx, idx2img, pager
 from boxViz import PREDICTIONS, LABELS, IMAGES
+from boxViz.data import get_preds
 
 directory = os.path.dirname(__file__)
+labelFilter = ''
+thresh = 0.01
 
 def imview(filename):
     """
@@ -16,6 +18,7 @@ def imview(filename):
     which handle url routing.
     """
     # handle user input
+    global labelFilter, thresh
     if request.method == 'POST':
         try:
             thresh = float(request.form['confidenceFilter'])
@@ -23,11 +26,9 @@ def imview(filename):
             print('{} is not a float. Setting to default 0.01'.format(request.form['confidenceFilter']))
             thresh = 0.01
         labelFilter = request.form['labelFilter']
-    else:
-        thresh, labelFilter = 0.01, ''
     
     gts = groundtruths[filename]
-    preds = PREDICTIONS
+    preds = PREDICTIONS 
 
     kwargs = {
         'thresh' : thresh,
@@ -37,7 +38,7 @@ def imview(filename):
 
     # plot preds and gts together
     filepath = os.path.join(IMAGES, filename)
-    image, annotations, original_dims = plot_boxes(filepath, groundtruths=gts, predictions=preds, **kwargs)
+    image, annotations, original_dims = plot_boxes(filepath, groundtruths=gts, predictions=preds, plot_gt=True, **kwargs)
     if image is None:
         return render_template("404.html", file_path=filepath, pager=pager), 404
     
@@ -49,14 +50,14 @@ def imview(filename):
     all_boxes = {}
     if groundtruths:
         filepath = os.path.join(IMAGES, filename)
-        image, annotations, original_dims = plot_boxes(filepath, groundtruths=gts, **kwargs) # just gts
+        image, annotations, original_dims = plot_boxes(filepath, groundtruths=gts, **kwargs, plot_gt=True) # just gts
         assert cv2.imwrite(os.path.join(directory, 'static/temp_gt.jpg'), image)
         all_boxes['gt'] = annotations
 
     # one image per model
     for k, v in PREDICTIONS.items():
         filepath = os.path.join(IMAGES, filename)
-        image, annotations, original_dims = plot_boxes(filepath, groundtruths=None, predictions={k : v}, **kwargs) 
+        image, annotations, original_dims = plot_boxes(filepath, groundtruths=gts, predictions={k : v}, **kwargs, plot_gt=False) 
         all_boxes[f'{k}'] = annotations
         assert cv2.imwrite(os.path.join(directory, f'static/temp_{k}.jpg'), image)
 
@@ -71,7 +72,7 @@ def imview(filename):
         request=request,
         all_boxes=all_boxes,
         labelFilter=labelFilter,
-        confidenceFilter=thresh
+        confidenceFilter=thresh,
         )
     return response
 

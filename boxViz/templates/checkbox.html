@@ -1,12 +1,12 @@
 <form method="post">
     <div class="form-group">
         <label for="confidenceFilter">Filter by confidence</label>
-        <input type="text" class="form-control" id="confidenceFilter" name="confidenceFilter" placeholder="0.01" value="{{ request.form['confidenceFilter'] }}">
+        <input type="text" class="form-control" id="confidenceFilter" name="confidenceFilter" placeholder="0.01" value="{{ confidenceFilter }}">
         <p>Confidence filter : {{ confidenceFilter }}</p>
     </div>
     <div class="form-group">
         <label for="labelFilter">Filter by label</label>
-        <input type="text" class="form-control" id="labelFilter" name="labelFilter" placeholder="Space Separated labels" value="{{ request.form['labelFilter'] }}">
+        <input type="text" class="form-control" id="labelFilter" name="labelFilter" placeholder="Space Separated labels" value="{{ labelFilter }}">
         <p>Label filters : {{ labelFilter }}</p>
     </div>
         <button type="submit">Submit</button>

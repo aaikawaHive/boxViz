@@ -1,13 +1,13 @@
 version: '3.8'
 services:
-  imageviewer:
+  boxViz:
     build: .
-    restart: on-failure
-    ports:
-      - 5000:5000/tcp
+    container_name: ${USER}_boxViz
+    ipc: host
+    network: host
+    privileged: true
     volumes:
       - /persist/${USER}:/persist/${USER}
-      - /persist/${USER}/.aws:/root/.aws
       - /root/.ssh:/root/.ssh
       - /home/${USER}:/home/${USER}
     
