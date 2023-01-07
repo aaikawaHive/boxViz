@@ -11,6 +11,7 @@ to be shared with a small number of collaborators.
 - [this stackoverflow question](http://stackoverflow.com/questions/28141454/flask-using-a-global-variable-to-load-data-files-into-memory)
 - flask documentation on databases
 
+![Alt text](assets/example.png "BoxViz Interface")
 
 ## Test out
 
